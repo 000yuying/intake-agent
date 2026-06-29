@@ -153,5 +153,9 @@ func (g *githubAdapter) Reply(ctx context.Context, msg adapter.Message, text str
 		return err
 	}
 	defer resp.Body.Close()
+	io.Copy(io.Discard, resp.Body)
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return fmt.Errorf("github: reply failed with status %d", resp.StatusCode)
+	}
 	return nil
 }

@@ -161,12 +161,15 @@ func BuildText(title, content string) string {
 
 func (n *notionAdapter) Reply(ctx context.Context, msg adapter.Message, text string) error {
 	url := fmt.Sprintf("%s/comments", notionAPIBase)
-	payload, _ := json.Marshal(map[string]interface{}{
+	payload, err := json.Marshal(map[string]interface{}{
 		"parent": map[string]string{"page_id": msg.ChannelID},
 		"rich_text": []map[string]interface{}{
 			{"type": "text", "text": map[string]string{"content": text}},
 		},
 	})
+	if err != nil {
+		return fmt.Errorf("notion: marshal reply payload: %w", err)
+	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(payload))
 	if err != nil {
 		return err
@@ -180,5 +183,9 @@ func (n *notionAdapter) Reply(ctx context.Context, msg adapter.Message, text str
 		return err
 	}
 	defer resp.Body.Close()
+	io.Copy(io.Discard, resp.Body)
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return fmt.Errorf("notion: reply failed with status %d", resp.StatusCode)
+	}
 	return nil
 }

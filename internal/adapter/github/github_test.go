@@ -8,7 +8,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -104,5 +103,4 @@ func TestGitHubInvalidSignature(t *testing.T) {
 	if w.Code != http.StatusUnauthorized {
 		t.Errorf("expected 401, got %d", w.Code)
 	}
-	_ = fmt.Sprintf("test done")
 }

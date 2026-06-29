@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -86,11 +87,20 @@ func (g *gchatAdapter) Reply(ctx context.Context, msg adapter.Message, text stri
 	if err != nil {
 		return err
 	}
-	resp, err := http.Post(g.webhookURL, "application/json", bytes.NewReader(payload))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, g.webhookURL, bytes.NewReader(payload))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		log.Printf("gchat reply error: %v", err)
 		return err
 	}
 	defer resp.Body.Close()
+	io.Copy(io.Discard, resp.Body)
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return fmt.Errorf("gchat: reply failed with status %d", resp.StatusCode)
+	}
 	return nil
 }
