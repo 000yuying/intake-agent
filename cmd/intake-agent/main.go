@@ -41,6 +41,10 @@ func main() {
 	writer := output.NewWriter(cfg.Output.RepoPath, cfg.Output.Dir)
 	confirm := engine.NewConfirmEngine(aiProvider, writer, 600*time.Second)
 
+	cleanupCtx, cleanupCancel := context.WithCancel(context.Background())
+	defer cleanupCancel()
+	confirm.StartCleanup(cleanupCtx)
+
 	var adapters []adapter.Adapter
 	if cfg.Adapters.Telegram.Enabled {
 		adapters = append(adapters, telegramadapter.New(cfg.Adapters.Telegram.Token))
