@@ -32,6 +32,7 @@ type AdaptersConfig struct {
 	Discord  DiscordConfig  `yaml:"discord"`
 	GChat    GChatConfig    `yaml:"gchat"`
 	GitHub   GitHubConfig   `yaml:"github"`
+	Jira     JiraConfig     `yaml:"jira"`
 }
 
 type TelegramConfig struct {
@@ -60,6 +61,13 @@ type GitHubConfig struct {
 	WebhookSecret string `yaml:"webhook_secret"`
 	Token         string `yaml:"token"`
 	Repo          string `yaml:"repo"`
+}
+
+type JiraConfig struct {
+	Enabled  bool   `yaml:"enabled"`
+	Host     string `yaml:"host"`       // e.g. "https://company.atlassian.net"
+	Email    string `yaml:"email"`
+	APIToken string `yaml:"api_token"`
 }
 
 func Load(path string) (*Config, error) {

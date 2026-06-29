@@ -29,3 +29,8 @@ adapters:
     webhook_secret: ""   # GitHub webhook secret
     token: ""            # Personal Access Token (issues:write scope)
     repo: ""             # "owner/repo"
+  jira:
+    enabled: false
+    host: ""          # e.g. "https://company.atlassian.net"
+    email: ""
+    api_token: ""     # Jira API Token（帳號設定 → 安全性 → API Token）

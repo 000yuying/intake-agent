@@ -13,6 +13,7 @@ import (
 	discordadapter "github.com/yuying/intake-agent/internal/adapter/discord"
 	gchatadapter "github.com/yuying/intake-agent/internal/adapter/gchat"
 	githubadapter "github.com/yuying/intake-agent/internal/adapter/github"
+	jiraadapter "github.com/yuying/intake-agent/internal/adapter/jira"
 	slackadapter "github.com/yuying/intake-agent/internal/adapter/slack"
 	telegramadapter "github.com/yuying/intake-agent/internal/adapter/telegram"
 	"github.com/yuying/intake-agent/internal/ai"
@@ -57,6 +58,13 @@ func main() {
 			cfg.Adapters.GitHub.WebhookSecret,
 			cfg.Adapters.GitHub.Token,
 			cfg.Adapters.GitHub.Repo,
+		))
+	}
+	if cfg.Adapters.Jira.Enabled {
+		adapters = append(adapters, jiraadapter.New(
+			cfg.Adapters.Jira.Host,
+			cfg.Adapters.Jira.Email,
+			cfg.Adapters.Jira.APIToken,
 		))
 	}
 
