@@ -48,31 +48,34 @@ func main() {
 
 	confirm.StartCleanup(ctx)
 
+	mux := http.NewServeMux()
 	var adapters []adapter.Adapter
 	if cfg.Adapters.Telegram.Enabled {
 		adapters = append(adapters, telegramadapter.New(cfg.Adapters.Telegram.Token))
 	}
 	if cfg.Adapters.Slack.Enabled {
-		adapters = append(adapters, slackadapter.New(cfg.Adapters.Slack.SigningSecret, cfg.Adapters.Slack.BotToken))
+		adapters = append(adapters, slackadapter.NewWithMux(cfg.Adapters.Slack.SigningSecret, cfg.Adapters.Slack.BotToken, mux))
 	}
 	if cfg.Adapters.Discord.Enabled {
 		adapters = append(adapters, discordadapter.New(cfg.Adapters.Discord.Token))
 	}
 	if cfg.Adapters.GChat.Enabled {
-		adapters = append(adapters, gchatadapter.New(cfg.Adapters.GChat.WebhookURL))
+		adapters = append(adapters, gchatadapter.NewWithMux(cfg.Adapters.GChat.WebhookURL, mux))
 	}
 	if cfg.Adapters.GitHub.Enabled {
-		adapters = append(adapters, githubadapter.New(
+		adapters = append(adapters, githubadapter.NewWithMux(
 			cfg.Adapters.GitHub.WebhookSecret,
 			cfg.Adapters.GitHub.Token,
 			cfg.Adapters.GitHub.Repo,
+			mux,
 		))
 	}
 	if cfg.Adapters.Jira.Enabled {
-		adapters = append(adapters, jiraadapter.New(
+		adapters = append(adapters, jiraadapter.NewWithMux(
 			cfg.Adapters.Jira.Host,
 			cfg.Adapters.Jira.Email,
 			cfg.Adapters.Jira.APIToken,
+			mux,
 		))
 	}
 	if cfg.Adapters.Notion.Enabled {
@@ -91,7 +94,7 @@ func main() {
 
 	log.Printf("intake-agent starting on :%d (AI: %s)", cfg.Server.Port, aiProvider.Name())
 	go func() {
-		if err := http.ListenAndServe(fmt.Sprintf(":%d", cfg.Server.Port), nil); err != nil && ctx.Err() == nil {
+		if err := http.ListenAndServe(fmt.Sprintf(":%d", cfg.Server.Port), mux); err != nil && ctx.Err() == nil {
 			log.Fatalf("http server error: %v", err)
 		}
 	}()
