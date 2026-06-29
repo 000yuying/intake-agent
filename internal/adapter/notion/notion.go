@@ -90,7 +90,11 @@ func (n *notionAdapter) fetchNew(ctx context.Context) {
 	}
 	defer resp.Body.Close()
 
-	body, _ := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Printf("notion: read response error: %v", err)
+		return
+	}
 	var result struct {
 		Results []notionPage `json:"results"`
 	}
@@ -110,7 +114,8 @@ func (n *notionAdapter) fetchNew(ctx context.Context) {
 			continue
 		}
 		title := extractTitle(page)
-		text := BuildText(title, "")
+		content := extractContent(page)
+		text := BuildText(title, content)
 		if n.out != nil {
 			select {
 			case n.out <- adapter.Message{
@@ -135,6 +140,15 @@ func extractTitle(page notionPage) string {
 		}
 	}
 	return page.ID
+}
+
+func extractContent(page notionPage) string {
+	for _, prop := range page.Properties {
+		if len(prop.RichText) > 0 {
+			return prop.RichText[0].PlainText
+		}
+	}
+	return ""
 }
 
 // BuildText is exported for testing.
