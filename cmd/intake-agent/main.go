@@ -11,6 +11,7 @@ import (
 
 	"github.com/yuying/intake-agent/internal/adapter"
 	discordadapter "github.com/yuying/intake-agent/internal/adapter/discord"
+	gchatadapter "github.com/yuying/intake-agent/internal/adapter/gchat"
 	slackadapter "github.com/yuying/intake-agent/internal/adapter/slack"
 	telegramadapter "github.com/yuying/intake-agent/internal/adapter/telegram"
 	"github.com/yuying/intake-agent/internal/ai"
@@ -46,6 +47,9 @@ func main() {
 	}
 	if cfg.Adapters.Discord.Enabled {
 		adapters = append(adapters, discordadapter.New(cfg.Adapters.Discord.Token))
+	}
+	if cfg.Adapters.GChat.Enabled {
+		adapters = append(adapters, gchatadapter.New(cfg.Adapters.GChat.WebhookURL))
 	}
 
 	eng := engine.NewEngine(confirm, adapters...)

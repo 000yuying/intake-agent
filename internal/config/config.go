@@ -30,6 +30,7 @@ type AdaptersConfig struct {
 	Telegram TelegramConfig `yaml:"telegram"`
 	Slack    SlackConfig    `yaml:"slack"`
 	Discord  DiscordConfig  `yaml:"discord"`
+	GChat    GChatConfig    `yaml:"gchat"`
 }
 
 type TelegramConfig struct {
@@ -46,6 +47,11 @@ type SlackConfig struct {
 type DiscordConfig struct {
 	Enabled bool   `yaml:"enabled"`
 	Token   string `yaml:"token"`
+}
+
+type GChatConfig struct {
+	Enabled    bool   `yaml:"enabled"`
+	WebhookURL string `yaml:"webhook_url"`
 }
 
 func Load(path string) (*Config, error) {

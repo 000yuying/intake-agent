@@ -21,3 +21,6 @@ adapters:
   discord:
     enabled: false
     token: ""
+  gchat:
+    enabled: false
+    webhook_url: ""    # Google Chat App Webhook URL（含 key & token 參數）
