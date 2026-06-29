@@ -8,7 +8,7 @@
 
 ## 概覽
 
-`intake-agent` 是一個 AI 最大化工作流程的訊息收集與 spec 自動產生工具。從多個訊息管道（Telegram、Slack、Discord、Jira、Google Chat、Notion、GitHub Issues）讀取需求訊息，透過 Claude AI 產生 spec 草稿，經人工在原管道輕量確認後，寫入 Markdown 檔案至指定 git repo。
+`intake-agent` 是一個 AI 最大化工作流程的訊息收集與 spec 自動產生工具。從多個訊息管道（Telegram、Slack、Discord、Jira、Google Chat、Notion、GitHub Issues）讀取需求訊息，透過可抽換的 AI Provider（Claude、Gemini、Codex）產生 spec 草稿，經人工在原管道輕量確認後，寫入 Markdown 檔案至指定 git repo。
 
 ---
 
@@ -73,11 +73,30 @@ type Adapter interface {
 
 ---
 
+## AI Provider 介面
+
+```go
+type AIProvider interface {
+    Name() string
+    GenerateSpec(ctx context.Context, userMessage string) (string, error)
+}
+```
+
+每個 AI 實作此介面，config 中指定 `provider` 即可切換，Core Engine 不綁死任何一家。
+
+| Provider | 實作檔案 | 備註 |
+|----------|----------|------|
+| Claude | `internal/ai/claude.go` | 預設，使用 Anthropic SDK |
+| Gemini | `internal/ai/gemini.go` | 使用 Google Generative AI SDK |
+| Codex | `internal/ai/codex.go` | 使用 OpenAI SDK |
+
+---
+
 ## 確認狀態機
 
 ```
 收到 Message
-  → Core Engine 呼叫 Claude API 產 spec 草稿
+  → Core Engine 透過 AIProvider 產 spec 草稿
   → 透過 Adapter.Reply() 回原管道：
     「這是我理解的 spec，回覆 ok 確認 / no 捨棄」
   → 等待同一 ChannelID + UserID 回覆
@@ -95,8 +114,8 @@ server:
   port: 8080
 
 ai:
-  provider: claude
-  model: claude-sonnet-4-6
+  provider: claude          # claude | gemini | codex
+  model: claude-sonnet-4-6  # 依 provider 填對應 model name
 
 output:
   repo_path: /home/yuying/specs   # spec 寫入的 git repo 路徑
@@ -154,7 +173,10 @@ intake-agent/
 │   │   ├── engine.go         # Core Engine：協調 adapter → AI → output
 │   │   └── confirm.go        # 確認狀態機
 │   ├── ai/
-│   │   └── claude.go         # Anthropic Claude API 呼叫
+│   │   ├── ai.go             # AIProvider interface
+│   │   ├── claude.go         # Anthropic Claude
+│   │   ├── gemini.go         # Google Gemini
+│   │   └── codex.go          # OpenAI Codex
 │   └── output/
 │       └── writer.go         # Markdown 寫入 + 檔名產生
 ├── configs/
@@ -181,7 +203,10 @@ intake-agent/
 | Notion adapter | 介面預留，實作留後 |
 | GitHub Issues adapter | 介面預留，實作留後 |
 | Core Engine + 確認狀態機 | ✅ 實作 |
-| Claude API 產 spec | ✅ 實作 |
+| AI Provider 介面（可抽換） | ✅ 實作 |
+| Claude provider | ✅ 實作 |
+| Gemini provider | ✅ 實作 |
+| Codex provider | ✅ 實作 |
 | Markdown 寫入本機 repo | ✅ 實作 |
 | Dockerfile + docker-compose | ✅ 實作 |
 | ngrok 本機開發指引 | ✅ 文件 |
