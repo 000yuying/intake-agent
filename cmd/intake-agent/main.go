@@ -39,6 +39,13 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to create AI provider: %v", err)
 	}
+	if closer, ok := aiProvider.(interface{ Close() error }); ok {
+		defer func() {
+			if err := closer.Close(); err != nil {
+				log.Printf("ai provider close error: %v", err)
+			}
+		}()
+	}
 
 	writer := output.NewWriter(cfg.Output.RepoPath, cfg.Output.Dir)
 	confirm := engine.NewConfirmEngine(aiProvider, writer, 600*time.Second)
@@ -93,14 +100,24 @@ func main() {
 	eng := engine.NewEngine(confirm, adapters...)
 
 	log.Printf("intake-agent starting on :%d (AI: %s)", cfg.Server.Port, aiProvider.Name())
+	srv := &http.Server{
+		Addr:    fmt.Sprintf(":%d", cfg.Server.Port),
+		Handler: mux,
+	}
 	go func() {
-		if err := http.ListenAndServe(fmt.Sprintf(":%d", cfg.Server.Port), mux); err != nil && ctx.Err() == nil {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("http server error: %v", err)
 		}
 	}()
 
 	if err := eng.Run(ctx); err != nil {
 		log.Fatalf("engine error: %v", err)
+	}
+
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer shutdownCancel()
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		log.Printf("http server shutdown error: %v", err)
 	}
 	log.Println("intake-agent stopped gracefully")
 }

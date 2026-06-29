@@ -5,6 +5,7 @@ import (
 	"context"
 	"log"
 	"strconv"
+	"sync"
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -13,6 +14,7 @@ import (
 
 type telegramAdapter struct {
 	token string
+	mu    sync.Mutex
 	bot   *tgbotapi.BotAPI
 }
 
@@ -27,7 +29,9 @@ func (t *telegramAdapter) Start(ctx context.Context, out chan<- adapter.Message)
 	if err != nil {
 		return err
 	}
+	t.mu.Lock()
 	t.bot = bot
+	t.mu.Unlock()
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
 	updates := bot.GetUpdatesChan(u)
@@ -60,7 +64,10 @@ func (t *telegramAdapter) Start(ctx context.Context, out chan<- adapter.Message)
 }
 
 func (t *telegramAdapter) Reply(ctx context.Context, msg adapter.Message, text string) error {
-	if t.bot == nil {
+	t.mu.Lock()
+	bot := t.bot
+	t.mu.Unlock()
+	if bot == nil {
 		log.Printf("telegram: bot not started, cannot reply")
 		return nil
 	}
@@ -69,7 +76,7 @@ func (t *telegramAdapter) Reply(ctx context.Context, msg adapter.Message, text s
 		return err
 	}
 	reply := tgbotapi.NewMessage(chatID, text)
-	_, err = t.bot.Send(reply)
+	_, err = bot.Send(reply)
 	if err != nil {
 		log.Printf("telegram reply error: %v", err)
 	}

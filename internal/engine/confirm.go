@@ -93,15 +93,11 @@ func (e *ConfirmEngine) HandleConfirm(ctx context.Context, msg adapter.Message) 
 // It runs until ctx is cancelled.
 func (e *ConfirmEngine) StartCleanup(ctx context.Context) {
 	interval := e.timeout / 2
-	if interval < 30*time.Second {
+	if interval > 30*time.Second {
 		interval = 30 * time.Second
 	}
-	// 在測試中 timeout 很小，interval 可能仍太大；直接用 timeout/2（不加 30s 下限）供短 timeout 測試
-	if e.timeout < 30*time.Second {
-		interval = e.timeout / 2
-		if interval < time.Millisecond {
-			interval = time.Millisecond
-		}
+	if interval < time.Millisecond {
+		interval = time.Millisecond
 	}
 	go func() {
 		ticker := time.NewTicker(interval)

@@ -52,3 +52,12 @@ func (g *geminiProvider) GenerateSpec(ctx context.Context, userMessage string) (
 	}
 	return string(part), nil
 }
+
+// Close releases the underlying gRPC connection held by the Gemini client.
+func (g *geminiProvider) Close() error {
+	g.once.Do(func() {}) // ensure once is marked done so client state is consistent
+	if g.client != nil {
+		return g.client.Close()
+	}
+	return nil
+}
