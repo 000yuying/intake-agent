@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/yuying/intake-agent/internal/adapter"
+	discordadapter "github.com/yuying/intake-agent/internal/adapter/discord"
 	slackadapter "github.com/yuying/intake-agent/internal/adapter/slack"
 	telegramadapter "github.com/yuying/intake-agent/internal/adapter/telegram"
 	"github.com/yuying/intake-agent/internal/ai"
@@ -42,6 +43,9 @@ func main() {
 	}
 	if cfg.Adapters.Slack.Enabled {
 		adapters = append(adapters, slackadapter.New(cfg.Adapters.Slack.SigningSecret, cfg.Adapters.Slack.BotToken))
+	}
+	if cfg.Adapters.Discord.Enabled {
+		adapters = append(adapters, discordadapter.New(cfg.Adapters.Discord.Token))
 	}
 
 	eng := engine.NewEngine(confirm, adapters...)
