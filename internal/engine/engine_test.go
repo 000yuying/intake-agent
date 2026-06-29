@@ -3,6 +3,8 @@ package engine
 import (
 	"context"
 	"errors"
+	"fmt"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -153,7 +155,7 @@ func TestEngine_handleMsg_confirmation(t *testing.T) {
 	}
 }
 
-// TestEngine_handleMsg_confirmError verifies that errors from HandleConfirm are logged (no panic/reply).
+// TestEngine_handleMsg_confirmError verifies that errors from HandleConfirm are logged and an error reply is sent.
 func TestEngine_handleMsg_confirmError(t *testing.T) {
 	replied := make(chan string, 1)
 	fa := &replyCapturingAdapter{name: "slack", replied: replied}
@@ -166,15 +168,19 @@ func TestEngine_handleMsg_confirmError(t *testing.T) {
 
 	eng := NewEngine(fc, fa)
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Millisecond)
+	defer cancel()
+
 	msg := adapter.Message{Source: "slack", Text: "ok"}
-	eng.handleMsg(ctx, msg) // should not panic, should not reply
+	go eng.handleMsg(ctx, msg)
 
 	select {
 	case got := <-replied:
-		t.Errorf("should not have replied, got: %q", got)
-	default:
-		// good: no reply
+		if !strings.Contains(got, "無法") {
+			t.Errorf("expected error reply containing '無法', got: %q", got)
+		}
+	case <-time.After(200 * time.Millisecond):
+		t.Error("timeout waiting for error reply")
 	}
 }
 
@@ -191,4 +197,47 @@ func (r *replyCapturingAdapter) Start(_ context.Context, _ chan<- adapter.Messag
 func (r *replyCapturingAdapter) Reply(_ context.Context, _ adapter.Message, text string) error {
 	r.replied <- text
 	return nil
+}
+
+// errorAI always returns an error
+type errorAI struct{}
+
+func (e *errorAI) HandleConfirm(ctx context.Context, msg adapter.Message) (string, bool, error) {
+	return "", false, fmt.Errorf("AI service unavailable")
+}
+
+func (e *errorAI) HandleMessage(ctx context.Context, msg adapter.Message) (string, error) {
+	return "", fmt.Errorf("AI service unavailable")
+}
+
+// TestEngineRepliesOnAIError verifies that the Engine replies to the user when AI processing fails
+func TestEngineRepliesOnAIError(t *testing.T) {
+	replied := make(chan string, 1)
+	fa := &replyCapturingAdapter{name: "test", replied: replied}
+
+	fc := &errorAI{}
+
+	eng := NewEngine(fc, fa)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	msg := adapter.Message{
+		ID:        "1",
+		Source:    "test",
+		ChannelID: "c1",
+		UserID:    "u1",
+		Text:      "新功能需求",
+		Timestamp: time.Now(),
+	}
+	go eng.handleMsg(ctx, msg)
+
+	select {
+	case reply := <-replied:
+		if !strings.Contains(reply, "無法") && !strings.Contains(reply, "錯誤") && !strings.Contains(reply, "error") {
+			t.Errorf("expected error reply to user, got: %s", reply)
+		}
+	case <-time.After(1 * time.Second):
+		t.Error("timeout waiting for error reply to user")
+	}
 }

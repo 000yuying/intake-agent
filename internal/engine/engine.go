@@ -53,6 +53,7 @@ func (e *Engine) handleMsg(ctx context.Context, msg adapter.Message) {
 		replyText, _, err := e.confirm.HandleConfirm(ctx, msg)
 		if err != nil {
 			log.Printf("confirm error: %v", err)
+			e.replyTo(msg, "系統暫時無法處理您的請求，請稍後再試。", ctx)
 			return
 		}
 		e.replyTo(msg, replyText, ctx)
@@ -61,6 +62,7 @@ func (e *Engine) handleMsg(ctx context.Context, msg adapter.Message) {
 	replyText, err := e.confirm.HandleMessage(ctx, msg)
 	if err != nil {
 		log.Printf("engine error: %v", err)
+		e.replyTo(msg, "系統暫時無法處理您的請求，請稍後再試。", ctx)
 		return
 	}
 	e.replyTo(msg, replyText, ctx)
