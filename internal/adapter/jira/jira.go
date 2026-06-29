@@ -101,7 +101,7 @@ func (j *jiraAdapter) handleEvent(w http.ResponseWriter, r *http.Request) {
 
 func (j *jiraAdapter) Reply(ctx context.Context, msg adapter.Message, text string) error {
 	url := fmt.Sprintf("%s/rest/api/3/issue/%s/comment", j.host, msg.ChannelID)
-	payload, _ := json.Marshal(map[string]interface{}{
+	payload, err := json.Marshal(map[string]interface{}{
 		"body": map[string]interface{}{
 			"type":    "doc",
 			"version": 1,
@@ -115,6 +115,9 @@ func (j *jiraAdapter) Reply(ctx context.Context, msg adapter.Message, text strin
 			},
 		},
 	})
+	if err != nil {
+		return fmt.Errorf("jira: marshal reply payload: %w", err)
+	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(payload))
 	if err != nil {
 		return err
@@ -128,5 +131,9 @@ func (j *jiraAdapter) Reply(ctx context.Context, msg adapter.Message, text strin
 		return err
 	}
 	defer resp.Body.Close()
+	io.Copy(io.Discard, resp.Body)
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return fmt.Errorf("jira: reply failed with status %d", resp.StatusCode)
+	}
 	return nil
 }
