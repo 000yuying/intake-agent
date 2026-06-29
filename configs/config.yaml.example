@@ -24,3 +24,8 @@ adapters:
   gchat:
     enabled: false
     webhook_url: ""    # Google Chat App Webhook URL（含 key & token 參數）
+  github:
+    enabled: false
+    webhook_secret: ""   # GitHub webhook secret
+    token: ""            # Personal Access Token (issues:write scope)
+    repo: ""             # "owner/repo"
