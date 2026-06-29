@@ -33,6 +33,7 @@ type AdaptersConfig struct {
 	GChat    GChatConfig    `yaml:"gchat"`
 	GitHub   GitHubConfig   `yaml:"github"`
 	Jira     JiraConfig     `yaml:"jira"`
+	Notion   NotionConfig   `yaml:"notion"`
 }
 
 type TelegramConfig struct {
@@ -68,6 +69,13 @@ type JiraConfig struct {
 	Host     string `yaml:"host"`       // e.g. "https://company.atlassian.net"
 	Email    string `yaml:"email"`
 	APIToken string `yaml:"api_token"`
+}
+
+type NotionConfig struct {
+	Enabled             bool   `yaml:"enabled"`
+	Token               string `yaml:"token"`
+	DatabaseID          string `yaml:"database_id"`
+	PollIntervalSeconds int    `yaml:"poll_interval_seconds"` // 預設 60
 }
 
 func Load(path string) (*Config, error) {

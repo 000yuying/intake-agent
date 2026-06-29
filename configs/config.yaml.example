@@ -34,3 +34,8 @@ adapters:
     host: ""          # e.g. "https://company.atlassian.net"
     email: ""
     api_token: ""     # Jira API Token（帳號設定 → 安全性 → API Token）
+  notion:
+    enabled: false
+    token: ""                   # Notion Integration Token（secret_...）
+    database_id: ""             # Notion Database ID（URL 中取得）
+    poll_interval_seconds: 60   # 輪詢間隔（秒），預設 60

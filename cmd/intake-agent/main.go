@@ -14,6 +14,7 @@ import (
 	gchatadapter "github.com/yuying/intake-agent/internal/adapter/gchat"
 	githubadapter "github.com/yuying/intake-agent/internal/adapter/github"
 	jiraadapter "github.com/yuying/intake-agent/internal/adapter/jira"
+	notionadapter "github.com/yuying/intake-agent/internal/adapter/notion"
 	slackadapter "github.com/yuying/intake-agent/internal/adapter/slack"
 	telegramadapter "github.com/yuying/intake-agent/internal/adapter/telegram"
 	"github.com/yuying/intake-agent/internal/ai"
@@ -65,6 +66,17 @@ func main() {
 			cfg.Adapters.Jira.Host,
 			cfg.Adapters.Jira.Email,
 			cfg.Adapters.Jira.APIToken,
+		))
+	}
+	if cfg.Adapters.Notion.Enabled {
+		interval := time.Duration(cfg.Adapters.Notion.PollIntervalSeconds) * time.Second
+		if interval == 0 {
+			interval = 60 * time.Second
+		}
+		adapters = append(adapters, notionadapter.New(
+			cfg.Adapters.Notion.Token,
+			cfg.Adapters.Notion.DatabaseID,
+			interval,
 		))
 	}
 
