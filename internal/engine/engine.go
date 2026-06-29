@@ -4,6 +4,7 @@ package engine
 import (
 	"context"
 	"log"
+	"strings"
 
 	"github.com/yuying/intake-agent/internal/adapter"
 )
@@ -47,18 +48,17 @@ func (e *Engine) Run(ctx context.Context) error {
 }
 
 func (e *Engine) handleMsg(ctx context.Context, msg adapter.Message) {
-	// Try as confirmation first.
-	replyText, wrote, err := e.confirm.HandleConfirm(ctx, msg)
-	if err != nil {
-		log.Printf("confirm error: %v", err)
-		return
-	}
-	if wrote || replyText != "" {
+	text := strings.TrimSpace(strings.ToLower(msg.Text))
+	if text == "ok" || text == "no" {
+		replyText, _, err := e.confirm.HandleConfirm(ctx, msg)
+		if err != nil {
+			log.Printf("confirm error: %v", err)
+			return
+		}
 		e.replyTo(msg, replyText, ctx)
 		return
 	}
-	// Treat as new requirement.
-	replyText, err = e.confirm.HandleMessage(ctx, msg)
+	replyText, err := e.confirm.HandleMessage(ctx, msg)
 	if err != nil {
 		log.Printf("engine error: %v", err)
 		return

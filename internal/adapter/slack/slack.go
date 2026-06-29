@@ -12,29 +12,26 @@ import (
 	"github.com/slack-go/slack"
 	"github.com/slack-go/slack/slackevents"
 	"github.com/yuying/intake-agent/internal/adapter"
-	"github.com/yuying/intake-agent/internal/engine"
 )
 
 type slackAdapter struct {
 	signingSecret string
 	botToken      string
-	engine        *engine.ConfirmEngine
 	mux           *http.ServeMux
 	out           chan<- adapter.Message
 }
 
 // New creates a Slack adapter that registers its HTTP handler on the default ServeMux.
-func New(signingSecret, botToken string, eng *engine.ConfirmEngine) adapter.Adapter {
-	return NewWithMux(signingSecret, botToken, eng, http.DefaultServeMux)
+func New(signingSecret, botToken string) adapter.Adapter {
+	return NewWithMux(signingSecret, botToken, http.DefaultServeMux)
 }
 
 // NewWithMux creates a Slack adapter that registers its HTTP handler on the given ServeMux.
 // This is useful for testing without polluting the default mux.
-func NewWithMux(signingSecret, botToken string, eng *engine.ConfirmEngine, mux *http.ServeMux) adapter.Adapter {
+func NewWithMux(signingSecret, botToken string, mux *http.ServeMux) adapter.Adapter {
 	return &slackAdapter{
 		signingSecret: signingSecret,
 		botToken:      botToken,
-		engine:        eng,
 		mux:           mux,
 	}
 }
@@ -89,14 +86,22 @@ func (s *slackAdapter) handleEvent(w http.ResponseWriter, r *http.Request) {
 	case slackevents.CallbackEvent:
 		innerEvent := eventsAPIEvent.InnerEvent
 		if msg, ok := innerEvent.Data.(*slackevents.MessageEvent); ok {
+			if msg.SubType != "" || msg.BotID != "" {
+				w.WriteHeader(http.StatusOK)
+				return
+			}
 			if s.out != nil {
-				s.out <- adapter.Message{
+				select {
+				case s.out <- adapter.Message{
 					ID:        msg.TimeStamp,
 					Source:    "slack",
 					ChannelID: msg.Channel,
 					UserID:    msg.User,
 					Text:      msg.Text,
 					Timestamp: time.Now(),
+				}:
+				default:
+					log.Printf("slack: out channel full, dropping message from %s", msg.User)
 				}
 			}
 		}

@@ -9,16 +9,14 @@ import (
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/yuying/intake-agent/internal/adapter"
-	"github.com/yuying/intake-agent/internal/engine"
 )
 
 type telegramAdapter struct {
-	token  string
-	engine *engine.ConfirmEngine
+	token string
 }
 
-func New(token string, eng *engine.ConfirmEngine) adapter.Adapter {
-	return &telegramAdapter{token: token, engine: eng}
+func New(token string) adapter.Adapter {
+	return &telegramAdapter{token: token}
 }
 
 func (t *telegramAdapter) Name() string { return "telegram" }
@@ -37,6 +35,9 @@ func (t *telegramAdapter) Start(ctx context.Context, out chan<- adapter.Message)
 			return nil
 		case update := <-updates:
 			if update.Message == nil {
+				continue
+			}
+			if update.Message.From == nil {
 				continue
 			}
 			msg := adapter.Message{

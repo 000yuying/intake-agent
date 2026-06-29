@@ -38,10 +38,10 @@ func main() {
 
 	var adapters []adapter.Adapter
 	if cfg.Adapters.Telegram.Enabled {
-		adapters = append(adapters, telegramadapter.New(cfg.Adapters.Telegram.Token, confirm))
+		adapters = append(adapters, telegramadapter.New(cfg.Adapters.Telegram.Token))
 	}
 	if cfg.Adapters.Slack.Enabled {
-		adapters = append(adapters, slackadapter.New(cfg.Adapters.Slack.SigningSecret, cfg.Adapters.Slack.BotToken, confirm))
+		adapters = append(adapters, slackadapter.New(cfg.Adapters.Slack.SigningSecret, cfg.Adapters.Slack.BotToken))
 	}
 
 	eng := engine.NewEngine(confirm, adapters...)

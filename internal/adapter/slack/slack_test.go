@@ -17,22 +17,7 @@ import (
 
 	"github.com/yuying/intake-agent/internal/adapter"
 	slackadapter "github.com/yuying/intake-agent/internal/adapter/slack"
-	"github.com/yuying/intake-agent/internal/engine"
-	"github.com/yuying/intake-agent/internal/output"
 )
-
-type fakeAI struct{}
-
-func (f *fakeAI) Name() string { return "fake" }
-func (f *fakeAI) GenerateSpec(_ context.Context, msg string) (string, error) {
-	return "## spec\n" + msg, nil
-}
-
-func newEngine(t *testing.T) *engine.ConfirmEngine {
-	t.Helper()
-	w := output.NewWriter(t.TempDir(), "specs/")
-	return engine.NewConfirmEngine(&fakeAI{}, w, 10*time.Minute)
-}
 
 const testSecret = "test-signing-secret"
 
@@ -50,7 +35,7 @@ func signRequest(t *testing.T, body []byte, r *http.Request) {
 
 // TestSlackName verifies Name() returns "slack".
 func TestSlackName(t *testing.T) {
-	a := slackadapter.New(testSecret, "bot-token", newEngine(t))
+	a := slackadapter.New(testSecret, "bot-token")
 	if a.Name() != "slack" {
 		t.Errorf("expected slack, got %s", a.Name())
 	}
@@ -59,7 +44,7 @@ func TestSlackName(t *testing.T) {
 // TestSlackStart_URLVerification verifies the challenge is echoed back.
 func TestSlackStart_URLVerification(t *testing.T) {
 	mux := http.NewServeMux()
-	a := slackadapter.NewWithMux(testSecret, "bot-token", newEngine(t), mux)
+	a := slackadapter.NewWithMux(testSecret, "bot-token", mux)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -88,7 +73,7 @@ func TestSlackStart_URLVerification(t *testing.T) {
 // TestSlackStart_MessageEvent verifies a message event is pushed to the out channel.
 func TestSlackStart_MessageEvent(t *testing.T) {
 	mux := http.NewServeMux()
-	a := slackadapter.NewWithMux(testSecret, "bot-token", newEngine(t), mux)
+	a := slackadapter.NewWithMux(testSecret, "bot-token", mux)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -146,7 +131,7 @@ func TestSlackStart_MessageEvent(t *testing.T) {
 // TestSlackStart_InvalidSignature verifies requests with bad signatures return 401.
 func TestSlackStart_InvalidSignature(t *testing.T) {
 	mux := http.NewServeMux()
-	a := slackadapter.NewWithMux(testSecret, "bot-token", newEngine(t), mux)
+	a := slackadapter.NewWithMux(testSecret, "bot-token", mux)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 

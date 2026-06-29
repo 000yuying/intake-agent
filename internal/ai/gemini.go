@@ -3,7 +3,6 @@ package ai
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"github.com/google/generative-ai-go/genai"
 	"google.golang.org/api/option"
@@ -38,5 +37,9 @@ func (g *geminiProvider) GenerateSpec(ctx context.Context, userMessage string) (
 	if len(resp.Candidates) == 0 || len(resp.Candidates[0].Content.Parts) == 0 {
 		return "", errors.New("empty response from Gemini")
 	}
-	return fmt.Sprintf("%v", resp.Candidates[0].Content.Parts[0]), nil
+	part, ok := resp.Candidates[0].Content.Parts[0].(genai.Text)
+	if !ok {
+		return "", errors.New("unexpected response type from Gemini")
+	}
+	return string(part), nil
 }
