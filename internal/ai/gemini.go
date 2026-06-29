@@ -3,14 +3,18 @@ package ai
 import (
 	"context"
 	"errors"
+	"sync"
 
 	"github.com/google/generative-ai-go/genai"
 	"google.golang.org/api/option"
 )
 
 type geminiProvider struct {
-	model  string
-	apiKey string
+	model    string
+	apiKey   string
+	once     sync.Once
+	client   *genai.Client
+	clientErr error
 }
 
 // NewGemini returns an AIProvider that calls the Google Gemini API.
@@ -20,16 +24,21 @@ func NewGemini(model, apiKey string) AIProvider {
 
 func (g *geminiProvider) Name() string { return "gemini" }
 
+func (g *geminiProvider) initClient(ctx context.Context) error {
+	g.once.Do(func() {
+		g.client, g.clientErr = genai.NewClient(ctx, option.WithAPIKey(g.apiKey))
+	})
+	return g.clientErr
+}
+
 func (g *geminiProvider) GenerateSpec(ctx context.Context, userMessage string) (string, error) {
 	if g.apiKey == "" {
 		return "", errors.New("api key is required")
 	}
-	client, err := genai.NewClient(ctx, option.WithAPIKey(g.apiKey))
-	if err != nil {
+	if err := g.initClient(ctx); err != nil {
 		return "", err
 	}
-	defer client.Close()
-	model := client.GenerativeModel(g.model)
+	model := g.client.GenerativeModel(g.model)
 	resp, err := model.GenerateContent(ctx, genai.Text(specPrompt(userMessage)))
 	if err != nil {
 		return "", err

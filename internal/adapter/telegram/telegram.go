@@ -13,6 +13,7 @@ import (
 
 type telegramAdapter struct {
 	token string
+	bot   *tgbotapi.BotAPI
 }
 
 func New(token string) adapter.Adapter {
@@ -26,6 +27,7 @@ func (t *telegramAdapter) Start(ctx context.Context, out chan<- adapter.Message)
 	if err != nil {
 		return err
 	}
+	t.bot = bot
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
 	updates := bot.GetUpdatesChan(u)
@@ -48,22 +50,26 @@ func (t *telegramAdapter) Start(ctx context.Context, out chan<- adapter.Message)
 				Text:      update.Message.Text,
 				Timestamp: time.Unix(int64(update.Message.Date), 0),
 			}
-			out <- msg
+			select {
+			case out <- msg:
+			default:
+				log.Printf("telegram: out channel full, dropping message from %s", msg.UserID)
+			}
 		}
 	}
 }
 
 func (t *telegramAdapter) Reply(ctx context.Context, msg adapter.Message, text string) error {
-	bot, err := tgbotapi.NewBotAPI(t.token)
-	if err != nil {
-		return err
+	if t.bot == nil {
+		log.Printf("telegram: bot not started, cannot reply")
+		return nil
 	}
 	chatID, err := strconv.ParseInt(msg.ChannelID, 10, 64)
 	if err != nil {
 		return err
 	}
 	reply := tgbotapi.NewMessage(chatID, text)
-	_, err = bot.Send(reply)
+	_, err = t.bot.Send(reply)
 	if err != nil {
 		log.Printf("telegram reply error: %v", err)
 	}
