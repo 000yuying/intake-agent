@@ -7,6 +7,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/yuying/intake-agent/internal/adapter"
@@ -41,9 +43,10 @@ func main() {
 	writer := output.NewWriter(cfg.Output.RepoPath, cfg.Output.Dir)
 	confirm := engine.NewConfirmEngine(aiProvider, writer, 600*time.Second)
 
-	cleanupCtx, cleanupCancel := context.WithCancel(context.Background())
-	defer cleanupCancel()
-	confirm.StartCleanup(cleanupCtx)
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	confirm.StartCleanup(ctx)
 
 	var adapters []adapter.Adapter
 	if cfg.Adapters.Telegram.Enabled {
@@ -88,12 +91,13 @@ func main() {
 
 	log.Printf("intake-agent starting on :%d (AI: %s)", cfg.Server.Port, aiProvider.Name())
 	go func() {
-		if err := http.ListenAndServe(fmt.Sprintf(":%d", cfg.Server.Port), nil); err != nil {
+		if err := http.ListenAndServe(fmt.Sprintf(":%d", cfg.Server.Port), nil); err != nil && ctx.Err() == nil {
 			log.Fatalf("http server error: %v", err)
 		}
 	}()
 
-	if err := eng.Run(context.Background()); err != nil {
+	if err := eng.Run(ctx); err != nil {
 		log.Fatalf("engine error: %v", err)
 	}
+	log.Println("intake-agent stopped gracefully")
 }
