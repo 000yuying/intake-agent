@@ -1,0 +1,23 @@
+# configs/config.yaml.example
+server:
+  port: 8080
+
+ai:
+  provider: claude          # claude | gemini | codex
+  model: claude-sonnet-4-6  # 依 provider 填對應 model name
+
+output:
+  repo_path: /home/yuying/specs
+  dir: specs/
+
+adapters:
+  telegram:
+    enabled: true
+    token: ""
+  slack:
+    enabled: true
+    signing_secret: ""
+    bot_token: ""
+  discord:
+    enabled: false
+    token: ""
